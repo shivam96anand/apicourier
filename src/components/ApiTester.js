@@ -26,6 +26,7 @@ const ApiTester = ({ selectedRequest, folders, updateFolders }) => {
                 clientSecret,
                 params: savedParams,
                 requestBody: savedRequestBody,
+                headers: savedHeaders, // 🆕
             } = selectedRequest.request;
 
             setUrl(url || "");
@@ -35,12 +36,18 @@ const ApiTester = ({ selectedRequest, folders, updateFolders }) => {
             setClientSecret(clientSecret || "");
             setParams(savedParams || [{ key: "", value: "" }]); // 🆕
             setRequestBody(savedRequestBody || ""); // 🆕
-
+            setHeaders(savedHeaders && savedHeaders.length > 0 ? savedHeaders : [{ key: "", value: "" }]); // 🆕 Corrected
             setResponse(selectedRequest.response || "");
         }
     }, [selectedRequest]);
 
-    const handleSave = () => {
+    useEffect(() => {
+        if (selectedRequest) {
+            autoSaveRequest();
+        }
+    }, [url, method, tokenUrl, clientId, clientSecret, params, requestBody, headers]);
+
+    const autoSaveRequest = () => {
         if (!selectedRequest) return;
 
         const updatedRequest = {
@@ -53,6 +60,7 @@ const ApiTester = ({ selectedRequest, folders, updateFolders }) => {
                 clientSecret,
                 params,
                 requestBody,
+                headers,
             },
         };
 
@@ -66,9 +74,10 @@ const ApiTester = ({ selectedRequest, folders, updateFolders }) => {
                 req.name === selectedRequest.name ? updatedRequest : req
             );
             updatedFolders[folderName] = updatedRequests;
-            updateFolders(updatedFolders); // update in App.js (will also update localStorage)
+            updateFolders(updatedFolders); // Will auto-save to localStorage via Sidebar
         }
     };
+
 
     const handleHeadersChange = (index, field, value) => {
         const updatedHeaders = [...headers];
@@ -245,7 +254,6 @@ const ApiTester = ({ selectedRequest, folders, updateFolders }) => {
 
             <div style={{marginTop: "10px", display: "flex", gap: "10px"}}>
                 <button onClick={makeApiCall}>Send Request</button>
-                <button onClick={handleSave}>💾 Save Changes</button>
             </div>
 
 

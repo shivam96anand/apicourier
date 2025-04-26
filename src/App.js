@@ -16,6 +16,7 @@ const App = () => {
                 folders={folders}
                 setFolders={setFolders}
                 selectRequest={(req) => setSelectedRequest(req)}
+                setSelectedRequest={setSelectedRequest}
             />
             <div style={{ flex: 1, padding: "20px" }}>
                 <h1 className="text-2xl font-bold mb-4">API Courier</h1>
