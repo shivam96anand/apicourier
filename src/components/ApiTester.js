@@ -101,7 +101,7 @@ const ApiTester = ({ selectedRequest, folders, updateFolders }) => {
         setResponseTime(timeTaken);
         setStatusCode(result?.status || null);
         console.log("API response code:", result.status);
-        const stringifiedResult = JSON.stringify(result, null, 2);
+        const stringifiedResult = JSON.stringify(result.data, null, 2);
         setResponse(stringifiedResult);
         setResponseHeaders(result?.headers || {});
         const bytes = new TextEncoder().encode(stringifiedResult).length;
@@ -228,12 +228,40 @@ const ApiTester = ({ selectedRequest, folders, updateFolders }) => {
                                 enableClipboard
                             />
                         ) : (
-                            <JsonViewer
-                                value={responseHeaders}
-                                theme="dark"
-                                defaultInspectDepth={Infinity}
-                                enableClipboard
-                            />
+                            <table style={{width: "100%", borderCollapse: "collapse"}}>
+                                <thead>
+                                <tr>
+                                    <th style={{border: "1px solid #ccc", padding: "8px"}}>Header</th>
+                                    <th style={{border: "1px solid #ccc", padding: "8px"}}>Value</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {Object.entries(responseHeaders).map(([key, value]) => (
+                                    <tr key={key}>
+                                        <td style={{
+                                            border: "1px solid #ccc",
+                                            padding: "8px",
+                                            wordBreak: "break-word",
+                                            whiteSpace: "normal",
+                                            maxWidth: "400px"  // Optional: to restrict very wide cells
+                                        }}>
+                                            {key}
+                                        </td>
+                                        <td style={{
+                                            border: "1px solid #ccc",
+                                            padding: "8px",
+                                            wordBreak: "break-word",
+                                            whiteSpace: "normal",
+                                            maxWidth: "400px"
+                                        }}>
+                                            {value}
+                                        </td>
+
+                                    </tr>
+                                ))}
+                                </tbody>
+                            </table>
+
                         )}
                     </div>
                 )}
