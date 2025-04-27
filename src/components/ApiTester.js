@@ -17,7 +17,6 @@ const ApiTester = ({ selectedRequest, folders, updateFolders }) => {
     const [responseTime, setResponseTime] = useState(0);
     const [statusCode, setStatusCode] = useState(null);
 
-
     useEffect(() => {
         if (selectedRequest?.request) {
             const {
@@ -41,31 +40,28 @@ const ApiTester = ({ selectedRequest, folders, updateFolders }) => {
             setTokenUrl(tokenUrl || "");
             setClientId(clientId || "");
             setClientSecret(clientSecret || "");
-
             setParams(savedParams?.map(p => ({ ...p, enabled: p.enabled !== false })) || [{ key: "", value: "", enabled: true }]);
             setHeaders(savedHeaders?.map(h => ({ ...h, enabled: h.enabled !== false })) || [{ key: "", value: "", enabled: true }]);
             setRequestBody(savedRequestBody || "");
-            setResponse(selectedRequest.response || "");
+            setResponse(savedResponse || "");
             setResponseHeaders(savedResponseHeaders || {});
             setStatusCode(savedStatusCode || null);
             setResponseSize(savedResponseSize || 0);
             setResponseTime(savedResponseTime || 0);
-            setViewTab("body"); // default to body
+            setViewTab("body");
         }
     }, [selectedRequest]);
 
     useEffect(() => {
         if (selectedRequest) autoSaveRequest();
-    }, [url, method, tokenUrl, clientId, clientSecret, params, requestBody, headers, statusCode, responseTime, responseSize, responseHeaders]);
+    }, [url, method, tokenUrl, clientId, clientSecret, params, requestBody, headers, response, responseHeaders, statusCode, responseSize, responseTime]);
 
     const autoSaveRequest = () => {
         if (!selectedRequest) return;
-
         const updatedRequest = {
             ...selectedRequest,
-            request: { url, method, tokenUrl, clientId, clientSecret, params, requestBody, headers, statusCode, responseTime, responseSize, responseHeaders },
+            request: { url, method, tokenUrl, clientId, clientSecret, params, requestBody, headers, response, responseHeaders, statusCode, responseSize, responseTime },
         };
-
         const updatedFolders = { ...folders };
         const folderName = Object.keys(folders).find(folder => folders[folder].some(req => req.name === selectedRequest.name));
         if (folderName) {
@@ -98,26 +94,32 @@ const ApiTester = ({ selectedRequest, folders, updateFolders }) => {
 
         const endTime = performance.now();
         const timeTaken = Math.round(endTime - startTime);
+
         setResponseTime(timeTaken);
         setStatusCode(result?.status || null);
-        console.log("API response code:", result.status);
         const stringifiedResult = JSON.stringify(result.data, null, 2);
         setResponse(stringifiedResult);
         setResponseHeaders(result?.headers || {});
         const bytes = new TextEncoder().encode(stringifiedResult).length;
         setResponseSize(bytes);
-        setViewTab("body"); // Always reset to body tab after a request
+        setViewTab("body");
+
         if (selectedRequest) {
             const updatedRequest = {
                 ...selectedRequest,
-                response: stringifiedResult,
+                request: {
+                    url, method, tokenUrl, clientId, clientSecret, params, requestBody, headers,
+                    response: stringifiedResult,
+                    responseHeaders: result?.headers || {},
+                    responseSize: bytes,
+                    responseTime: timeTaken,
+                    statusCode: result?.status || null
+                }
             };
-
             const updatedFolders = { ...folders };
             const folderName = Object.keys(folders).find(folder =>
                 folders[folder].some(req => req.name === selectedRequest.name)
             );
-
             if (folderName) {
                 const updatedRequests = folders[folderName].map(req =>
                     req.name === selectedRequest.name ? updatedRequest : req
@@ -130,8 +132,7 @@ const ApiTester = ({ selectedRequest, folders, updateFolders }) => {
 
     const fetchToken = async () => {
         try {
-            const token = await window.electronAPI.invoke("fetch-token", { tokenUrl, clientId, clientSecret });
-            return token;
+            return await window.electronAPI.invoke("fetch-token", { tokenUrl, clientId, clientSecret });
         } catch (error) {
             console.error("Renderer error while fetching token:", error);
             return null;
@@ -191,33 +192,20 @@ const ApiTester = ({ selectedRequest, folders, updateFolders }) => {
             {/* Right: Response Section */}
             <div style={{ flex: 1, backgroundColor: "#1e1e1e", color: "#fff", padding: "20px", overflowY: "auto" }}>
                 {response && (
-                    <div style={{
-                        border: "1px solid #ccc",
-                        borderRadius: "10px",
-                        padding: "16px",
-                        height: "90%",
-                        overflow: "auto",
-                        backgroundColor: "#2c2c2c"
-                    }}>
-                        <div style={{marginBottom: "10px", display: "flex", gap: "20px"}}>
+                    <div style={{ border: "1px solid #ccc", borderRadius: "10px", padding: "16px", height: "90%", overflow: "auto", backgroundColor: "#2c2c2c" }}>
+                        <div style={{ marginBottom: "10px", display: "flex", gap: "20px" }}>
                             <span><strong>Status:</strong> {statusCode}</span>
                             <span><strong>Size:</strong> {(responseSize / 1024).toFixed(2)} KB</span>
                             <span><strong>Time:</strong> {responseTime} ms</span>
                         </div>
 
-
-                        <div style={{marginBottom: "10px"}}>
+                        <div style={{ marginBottom: "10px" }}>
                             <button onClick={() => setViewTab("body")} style={{
-                                marginRight: "10px",
-                                backgroundColor: viewTab === "body" ? "#444" : "#666",
-                                color: "white"
-                            }}>Body
-                            </button>
+                                marginRight: "10px", backgroundColor: viewTab === "body" ? "#444" : "#666", color: "white"
+                            }}>Body</button>
                             <button onClick={() => setViewTab("headers")} style={{
-                                backgroundColor: viewTab === "headers" ? "#444" : "#666",
-                                color: "white"
-                            }}>Headers
-                            </button>
+                                backgroundColor: viewTab === "headers" ? "#444" : "#666", color: "white"
+                            }}>Headers</button>
                         </div>
 
                         {viewTab === "body" ? (
@@ -228,45 +216,32 @@ const ApiTester = ({ selectedRequest, folders, updateFolders }) => {
                                 enableClipboard
                             />
                         ) : (
-                            <table style={{width: "100%", borderCollapse: "collapse"}}>
+                            <table style={{ width: "100%", borderCollapse: "collapse" }}>
                                 <thead>
                                 <tr>
-                                    <th style={{border: "1px solid #ccc", padding: "8px"}}>Header</th>
-                                    <th style={{border: "1px solid #ccc", padding: "8px"}}>Value</th>
+                                    <th style={{ border: "1px solid #ccc", padding: "8px" }}>Header</th>
+                                    <th style={{ border: "1px solid #ccc", padding: "8px" }}>Value</th>
                                 </tr>
                                 </thead>
                                 <tbody>
                                 {Object.entries(responseHeaders).map(([key, value]) => (
                                     <tr key={key}>
                                         <td style={{
-                                            border: "1px solid #ccc",
-                                            padding: "8px",
-                                            wordBreak: "break-word",
-                                            whiteSpace: "normal",
-                                            maxWidth: "400px"  // Optional: to restrict very wide cells
-                                        }}>
-                                            {key}
-                                        </td>
+                                            border: "1px solid #ccc", padding: "8px",
+                                            wordBreak: "break-word", whiteSpace: "normal", maxWidth: "400px"
+                                        }}>{key}</td>
                                         <td style={{
-                                            border: "1px solid #ccc",
-                                            padding: "8px",
-                                            wordBreak: "break-word",
-                                            whiteSpace: "normal",
-                                            maxWidth: "400px"
-                                        }}>
-                                            {value}
-                                        </td>
-
+                                            border: "1px solid #ccc", padding: "8px",
+                                            wordBreak: "break-word", whiteSpace: "normal", maxWidth: "400px"
+                                        }}>{value}</td>
                                     </tr>
                                 ))}
                                 </tbody>
                             </table>
-
                         )}
                     </div>
                 )}
             </div>
-
         </div>
     );
 };
