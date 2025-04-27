@@ -40,6 +40,16 @@ ipcMain.handle('fetch-token', async (event, { tokenUrl, clientId, clientSecret }
 
 ipcMain.handle('make-api-call', async (event, { url, method, token, headers = {}, body }) => {
     try {
+
+        const outgoingHeaders = {
+            ...headers,
+            'Content-Type': 'application/json',
+        };
+
+        if (token) {
+            outgoingHeaders.Authorization = `Bearer ${token}`;
+        }
+
         const res = await fetch(url, {
             method,
             headers: {
@@ -51,7 +61,11 @@ ipcMain.handle('make-api-call', async (event, { url, method, token, headers = {}
         });
 
         const data = await res.json();
-        return data;
+        return {
+            data: data,
+            headers: Object.fromEntries(res.headers.entries()), // Response headers
+            status: res.status,                                 // HTTP status code
+        };
     } catch (err) {
         console.error("Main process API call error:", err);
         return { error: err.message };

@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { JsonViewer } from "@textea/json-viewer";
 
 const ApiTester = ({ selectedRequest, folders, updateFolders }) => {
@@ -13,9 +11,12 @@ const ApiTester = ({ selectedRequest, folders, updateFolders }) => {
     const [clientId, setClientId] = useState("");
     const [clientSecret, setClientSecret] = useState("");
     const [response, setResponse] = useState("");
-    const [viewMode, setViewMode] = useState("tree");
+    const [responseHeaders, setResponseHeaders] = useState({});
+    const [viewTab, setViewTab] = useState("body");
     const [responseSize, setResponseSize] = useState(0);
     const [responseTime, setResponseTime] = useState(0);
+    const [statusCode, setStatusCode] = useState(null);
+
 
     useEffect(() => {
         if (selectedRequest?.request) {
@@ -28,6 +29,11 @@ const ApiTester = ({ selectedRequest, folders, updateFolders }) => {
                 params: savedParams,
                 requestBody: savedRequestBody,
                 headers: savedHeaders,
+                response: savedResponse,
+                responseHeaders: savedResponseHeaders,
+                statusCode: savedStatusCode,
+                responseSize: savedResponseSize,
+                responseTime: savedResponseTime,
             } = selectedRequest.request;
 
             setUrl(url || "");
@@ -36,66 +42,44 @@ const ApiTester = ({ selectedRequest, folders, updateFolders }) => {
             setClientId(clientId || "");
             setClientSecret(clientSecret || "");
 
-            // Ensure "enabled" field is present in loaded params and headers
-            setParams(
-                savedParams?.map(p => ({ ...p, enabled: p.enabled !== false })) || [{ key: "", value: "", enabled: true }]
-            );
-            setHeaders(
-                savedHeaders?.map(h => ({ ...h, enabled: h.enabled !== false })) || [{ key: "", value: "", enabled: true }]
-            );
+            setParams(savedParams?.map(p => ({ ...p, enabled: p.enabled !== false })) || [{ key: "", value: "", enabled: true }]);
+            setHeaders(savedHeaders?.map(h => ({ ...h, enabled: h.enabled !== false })) || [{ key: "", value: "", enabled: true }]);
             setRequestBody(savedRequestBody || "");
             setResponse(selectedRequest.response || "");
+            setResponseHeaders(savedResponseHeaders || {});
+            setStatusCode(savedStatusCode || null);
+            setResponseSize(savedResponseSize || 0);
+            setResponseTime(savedResponseTime || 0);
+            setViewTab("body"); // default to body
         }
     }, [selectedRequest]);
 
-    // Auto-save on any change
     useEffect(() => {
-        if (selectedRequest) {
-            autoSaveRequest();
-        }
-    }, [url, method, tokenUrl, clientId, clientSecret, params, requestBody, headers]);
+        if (selectedRequest) autoSaveRequest();
+    }, [url, method, tokenUrl, clientId, clientSecret, params, requestBody, headers, statusCode, responseTime, responseSize, responseHeaders]);
 
     const autoSaveRequest = () => {
         if (!selectedRequest) return;
 
         const updatedRequest = {
             ...selectedRequest,
-            request: {
-                url,
-                method,
-                tokenUrl,
-                clientId,
-                clientSecret,
-                params,
-                requestBody,
-                headers,
-            },
+            request: { url, method, tokenUrl, clientId, clientSecret, params, requestBody, headers, statusCode, responseTime, responseSize, responseHeaders },
         };
 
         const updatedFolders = { ...folders };
-        const folderName = Object.keys(folders).find(folder =>
-            folders[folder].some(req => req.name === selectedRequest.name)
-        );
-
+        const folderName = Object.keys(folders).find(folder => folders[folder].some(req => req.name === selectedRequest.name));
         if (folderName) {
-            const updatedRequests = folders[folderName].map(req =>
-                req.name === selectedRequest.name ? updatedRequest : req
-            );
-            updatedFolders[folderName] = updatedRequests;
+            updatedFolders[folderName] = folders[folderName].map(req => req.name === selectedRequest.name ? updatedRequest : req);
             updateFolders(updatedFolders);
         }
     };
 
     const makeApiCall = async () => {
-        const startTime = performance.now();  // ⏱️ Start timer
+        const startTime = performance.now();
         const token = await fetchToken();
 
-        // Only include enabled params
         const enabledParams = params.filter(p => p.enabled && p.key && p.value);
-        const queryParamsString = enabledParams
-            .map(p => `${encodeURIComponent(p.key)}=${encodeURIComponent(p.value)}`)
-            .join("&");
-
+        const queryParamsString = enabledParams.map(p => `${encodeURIComponent(p.key)}=${encodeURIComponent(p.value)}`).join("&");
         const finalUrl = queryParamsString ? `${url}?${queryParamsString}` : url;
 
         let parsedBody = {};
@@ -107,35 +91,22 @@ const ApiTester = ({ selectedRequest, folders, updateFolders }) => {
             return;
         }
 
-        // Only include enabled headers
-        const headersObject = {
-            "Content-Type": "application/json",
-        };
-        const enabledHeaders = headers.filter(h => h.enabled && h.key && h.value);
-        enabledHeaders.forEach(h => {
-            headersObject[h.key] = h.value;
-        });
+        const headersObject = { "Content-Type": "application/json" };
+        headers.filter(h => h.enabled && h.key && h.value).forEach(h => { headersObject[h.key] = h.value; });
 
-        const result = await window.electronAPI.invoke("make-api-call", {
-            url: finalUrl,
-            method,
-            token,
-            headers: headersObject,
-            body: parsedBody
-        });
+        const result = await window.electronAPI.invoke("make-api-call", { url: finalUrl, method, token, headers: headersObject, body: parsedBody });
 
-        const endTime = performance.now();  // ⏱️ End timer
-        const timeTaken = Math.round(endTime - startTime); // in milliseconds
-        setResponseTime(timeTaken); // ⏱️ Save time
-
-        console.log("API response:", result);
+        const endTime = performance.now();
+        const timeTaken = Math.round(endTime - startTime);
+        setResponseTime(timeTaken);
+        setStatusCode(result?.status || null);
+        console.log("API response code:", result.status);
         const stringifiedResult = JSON.stringify(result, null, 2);
         setResponse(stringifiedResult);
-
+        setResponseHeaders(result?.headers || {});
         const bytes = new TextEncoder().encode(stringifiedResult).length;
         setResponseSize(bytes);
-
-        // Save response inside request
+        setViewTab("body"); // Always reset to body tab after a request
         if (selectedRequest) {
             const updatedRequest = {
                 ...selectedRequest,
@@ -159,11 +130,7 @@ const ApiTester = ({ selectedRequest, folders, updateFolders }) => {
 
     const fetchToken = async () => {
         try {
-            const token = await window.electronAPI.invoke("fetch-token", {
-                tokenUrl,
-                clientId,
-                clientSecret,
-            });
+            const token = await window.electronAPI.invoke("fetch-token", { tokenUrl, clientId, clientSecret });
             return token;
         } catch (error) {
             console.error("Renderer error while fetching token:", error);
@@ -171,121 +138,58 @@ const ApiTester = ({ selectedRequest, folders, updateFolders }) => {
         }
     };
 
-    // Parameter and Header Handlers
-    const handleHeadersChange = (index, field, value) => {
-        const updatedHeaders = [...headers];
-        updatedHeaders[index][field] = value;
-        setHeaders(updatedHeaders);
-    };
+    const handleParamsChange = (index, field, value) => { const updated = [...params]; updated[index][field] = value; setParams(updated); };
+    const handleHeadersChange = (index, field, value) => { const updated = [...headers]; updated[index][field] = value; setHeaders(updated); };
+    const handleParamCheckboxChange = (index, checked) => { const updated = [...params]; updated[index].enabled = checked; setParams(updated); };
+    const handleHeaderCheckboxChange = (index, checked) => { const updated = [...headers]; updated[index].enabled = checked; setHeaders(updated); };
+    const handleDeleteParam = (index) => { const updated = [...params]; updated.splice(index, 1); setParams(updated); };
+    const handleDeleteHeader = (index) => { const updated = [...headers]; updated.splice(index, 1); setHeaders(updated); };
 
-    const handleParamsChange = (index, field, value) => {
-        const updatedParams = [...params];
-        updatedParams[index][field] = value;
-        setParams(updatedParams);
-    };
-
-    const handleParamCheckboxChange = (index, isChecked) => {
-        const updatedParams = [...params];
-        updatedParams[index].enabled = isChecked;
-        setParams(updatedParams);
-    };
-
-    const handleHeaderCheckboxChange = (index, isChecked) => {
-        const updatedHeaders = [...headers];
-        updatedHeaders[index].enabled = isChecked;
-        setHeaders(updatedHeaders);
-    };
-
-    const handleDeleteParam = (index) => {
-        const updatedParams = [...params];
-        updatedParams.splice(index, 1);
-        setParams(updatedParams);
-    };
-
-    const handleDeleteHeader = (index) => {
-        const updatedHeaders = [...headers];
-        updatedHeaders.splice(index, 1);
-        setHeaders(updatedHeaders);
-    };
-
-    // --- Start of JSX ---
     return (
         <div style={{ display: "flex", height: "100vh" }}>
             {/* Left: Request Form */}
             <div style={{ flex: 1, overflowY: "auto", padding: "20px" }}>
-                <div>
-                    <label>URL:</label>
-                    <input type="text" value={url} onChange={(e) => setUrl(e.target.value)} style={{ width: "100%" }} />
-                </div>
+                <div><label>URL:</label><input type="text" value={url} onChange={(e) => setUrl(e.target.value)} style={{ width: "100%" }} /></div>
+                <div><label>Method:</label><select value={method} onChange={(e) => setMethod(e.target.value)} style={{ width: "100%" }}><option value="GET">GET</option><option value="POST">POST</option></select></div>
 
-                <div>
-                    <label>Method:</label>
-                    <select value={method} onChange={(e) => setMethod(e.target.value)} style={{ width: "100%" }}>
-                        <option value="GET">GET</option>
-                        <option value="POST">POST</option>
-                    </select>
-                </div>
+                <h3>Parameters</h3>
+                {params.map((p, i) => (
+                    <div key={i} style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                        <input type="checkbox" checked={p.enabled} onChange={(e) => handleParamCheckboxChange(i, e.target.checked)} />
+                        <input value={p.key} placeholder="Key" onChange={(e) => handleParamsChange(i, "key", e.target.value)} />
+                        <input value={p.value} placeholder="Value" onChange={(e) => handleParamsChange(i, "value", e.target.value)} />
+                        <button onClick={() => handleDeleteParam(i)}>🗑️</button>
+                    </div>
+                ))}
+                <button onClick={() => setParams([...params, { key: "", value: "", enabled: true }])}>Add Parameter</button>
 
-                <div>
-                    <h3>Parameters</h3>
-                    {params.map((param, index) => (
-                        <div key={index} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            <input type="checkbox" checked={param.enabled} onChange={(e) => handleParamCheckboxChange(index, e.target.checked)} />
-                            <input type="text" placeholder="Key" value={param.key} onChange={(e) => handleParamsChange(index, "key", e.target.value)} />
-                            <input type="text" placeholder="Value" value={param.value} onChange={(e) => handleParamsChange(index, "value", e.target.value)} />
-                            <button onClick={() => handleDeleteParam(index)}>🗑️</button>
-                        </div>
-                    ))}
-                    <button onClick={() => setParams([...params, { key: "", value: "", enabled: true }])}>
-                        Add Parameter
-                    </button>
-                </div>
-
-                <div>
-                    <h3>Headers</h3>
-                    {headers.map((header, index) => (
-                        <div key={index} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            <input type="checkbox" checked={header.enabled} onChange={(e) => handleHeaderCheckboxChange(index, e.target.checked)} />
-                            <input type="text" placeholder="Header Key" value={header.key} onChange={(e) => handleHeadersChange(index, "key", e.target.value)} />
-                            <input type="text" placeholder="Header Value" value={header.value} onChange={(e) => handleHeadersChange(index, "value", e.target.value)} />
-                            <button onClick={() => handleDeleteHeader(index)}>🗑️</button>
-                        </div>
-                    ))}
-                    <button onClick={() => setHeaders([...headers, { key: "", value: "", enabled: true }])}>
-                        Add Header
-                    </button>
-                </div>
+                <h3>Headers</h3>
+                {headers.map((h, i) => (
+                    <div key={i} style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                        <input type="checkbox" checked={h.enabled} onChange={(e) => handleHeaderCheckboxChange(i, e.target.checked)} />
+                        <input value={h.key} placeholder="Key" onChange={(e) => handleHeadersChange(i, "key", e.target.value)} />
+                        <input value={h.value} placeholder="Value" onChange={(e) => handleHeadersChange(i, "value", e.target.value)} />
+                        <button onClick={() => handleDeleteHeader(i)}>🗑️</button>
+                    </div>
+                ))}
+                <button onClick={() => setHeaders([...headers, { key: "", value: "", enabled: true }])}>Add Header</button>
 
                 {method === "POST" && (
-                    <div>
-                        <h3>Request Body</h3>
-                        <textarea value={requestBody} onChange={(e) => setRequestBody(e.target.value)} style={{ width: "100%", height: "150px" }} />
-                    </div>
+                    <div><h3>Request Body</h3><textarea value={requestBody} onChange={(e) => setRequestBody(e.target.value)} style={{ width: "100%", height: "150px" }} /></div>
                 )}
 
-                <div>
-                    <h3>OAuth2 Authentication</h3>
-                    <label>Token URL:</label>
-                    <input type="text" value={tokenUrl} onChange={(e) => setTokenUrl(e.target.value)} style={{ width: "100%" }} />
-                    <label>Client ID:</label>
-                    <input type="text" value={clientId} onChange={(e) => setClientId(e.target.value)} style={{ width: "100%" }} />
-                    <label>Client Secret:</label>
-                    <input type="password" value={clientSecret} onChange={(e) => setClientSecret(e.target.value)} style={{ width: "100%" }} />
-                </div>
+                <h3>OAuth2 Authentication</h3>
+                <div><label>Token URL:</label><input value={tokenUrl} onChange={(e) => setTokenUrl(e.target.value)} style={{ width: "100%" }} /></div>
+                <div><label>Client ID:</label><input value={clientId} onChange={(e) => setClientId(e.target.value)} style={{ width: "100%" }} /></div>
+                <div><label>Client Secret:</label><input type="password" value={clientSecret} onChange={(e) => setClientSecret(e.target.value)} style={{ width: "100%" }} /></div>
 
                 <div style={{ marginTop: "10px", display: "flex", gap: "10px" }}>
                     <button onClick={makeApiCall}>Send Request</button>
                 </div>
             </div>
 
-            {/* Right: Response */}
-            <div style={{
-                flex: 1,
-                backgroundColor: "#1e1e1e",
-                color: "#fff",
-                padding: "20px",
-                overflowY: "auto"
-            }}>
+            {/* Right: Response Section */}
+            <div style={{ flex: 1, backgroundColor: "#1e1e1e", color: "#fff", padding: "20px", overflowY: "auto" }}>
                 {response && (
                     <div style={{
                         border: "1px solid #ccc",
@@ -295,20 +199,46 @@ const ApiTester = ({ selectedRequest, folders, updateFolders }) => {
                         overflow: "auto",
                         backgroundColor: "#2c2c2c"
                     }}>
-                        <div style={{ marginBottom: "10px", display: "flex", gap: "20px" }}>
+                        <div style={{marginBottom: "10px", display: "flex", gap: "20px"}}>
+                            <span><strong>Status:</strong> {statusCode}</span>
                             <span><strong>Size:</strong> {(responseSize / 1024).toFixed(2)} KB</span>
                             <span><strong>Time:</strong> {responseTime} ms</span>
                         </div>
 
-                        <JsonViewer
-                            value={typeof response === "string" ? JSON.parse(response) : response}
-                            theme="dark"
-                            defaultInspectDepth={Infinity}
-                            enableClipboard
-                        />
+
+                        <div style={{marginBottom: "10px"}}>
+                            <button onClick={() => setViewTab("body")} style={{
+                                marginRight: "10px",
+                                backgroundColor: viewTab === "body" ? "#444" : "#666",
+                                color: "white"
+                            }}>Body
+                            </button>
+                            <button onClick={() => setViewTab("headers")} style={{
+                                backgroundColor: viewTab === "headers" ? "#444" : "#666",
+                                color: "white"
+                            }}>Headers
+                            </button>
+                        </div>
+
+                        {viewTab === "body" ? (
+                            <JsonViewer
+                                value={typeof response === "string" ? JSON.parse(response) : response}
+                                theme="dark"
+                                defaultInspectDepth={Infinity}
+                                enableClipboard
+                            />
+                        ) : (
+                            <JsonViewer
+                                value={responseHeaders}
+                                theme="dark"
+                                defaultInspectDepth={Infinity}
+                                enableClipboard
+                            />
+                        )}
                     </div>
                 )}
             </div>
+
         </div>
     );
 };
