@@ -17,7 +17,6 @@ const ApiTester = ({ selectedRequest, folders, updateFolders }) => {
     const [responseSize, setResponseSize] = useState(0);
     const [responseTime, setResponseTime] = useState(0);
 
-    // Load selected request details
     useEffect(() => {
         if (selectedRequest?.request) {
             const {
@@ -209,136 +208,107 @@ const ApiTester = ({ selectedRequest, folders, updateFolders }) => {
         setHeaders(updatedHeaders);
     };
 
+    // --- Start of JSX ---
     return (
-        <div className="p-4">
-            <div>
-                <label>URL:</label>
-                <input type="text" value={url} onChange={(e) => setUrl(e.target.value)} />
-            </div>
-
-            <div>
-                <label>Method:</label>
-                <select value={method} onChange={(e) => setMethod(e.target.value)}>
-                    <option value="GET">GET</option>
-                    <option value="POST">POST</option>
-                </select>
-            </div>
-
-            <div>
-                <h3>Parameters</h3>
-                {params.map((param, index) => (
-                    <div key={index} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <input
-                            type="checkbox"
-                            checked={param.enabled}
-                            onChange={(e) => handleParamCheckboxChange(index, e.target.checked)}
-                        />
-                        <input
-                            type="text"
-                            placeholder="Key"
-                            value={param.key}
-                            onChange={(e) => handleParamsChange(index, "key", e.target.value)}
-                        />
-                        <input
-                            type="text"
-                            placeholder="Value"
-                            value={param.value}
-                            onChange={(e) => handleParamsChange(index, "value", e.target.value)}
-                        />
-                        <button onClick={() => handleDeleteParam(index)}>🗑️</button>
-                    </div>
-                ))}
-                <button onClick={() => setParams([...params, { key: "", value: "", enabled: true }])}>
-                    Add Parameter
-                </button>
-            </div>
-
-            <div>
-                <h3>Headers</h3>
-                {headers.map((header, index) => (
-                    <div key={index} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <input
-                            type="checkbox"
-                            checked={header.enabled}
-                            onChange={(e) => handleHeaderCheckboxChange(index, e.target.checked)}
-                        />
-                        <input
-                            type="text"
-                            placeholder="Header Key"
-                            value={header.key}
-                            onChange={(e) => handleHeadersChange(index, "key", e.target.value)}
-                        />
-                        <input
-                            type="text"
-                            placeholder="Header Value"
-                            value={header.value}
-                            onChange={(e) => handleHeadersChange(index, "value", e.target.value)}
-                        />
-                        <button onClick={() => handleDeleteHeader(index)}>🗑️</button>
-                    </div>
-                ))}
-                <button onClick={() => setHeaders([...headers, { key: "", value: "", enabled: true }])}>
-                    Add Header
-                </button>
-            </div>
-
-            {method === "POST" && (
+        <div style={{ display: "flex", height: "100vh" }}>
+            {/* Left: Request Form */}
+            <div style={{ flex: 1, overflowY: "auto", padding: "20px" }}>
                 <div>
-                    <h3>Request Body</h3>
-                    <textarea value={requestBody} onChange={(e) => setRequestBody(e.target.value)} />
+                    <label>URL:</label>
+                    <input type="text" value={url} onChange={(e) => setUrl(e.target.value)} style={{ width: "100%" }} />
                 </div>
-            )}
 
-            <div>
-                <h3>OAuth2 Authentication</h3>
-                <label>Token URL:</label>
-                <input type="text" value={tokenUrl} onChange={(e) => setTokenUrl(e.target.value)} />
-                <label>Client ID:</label>
-                <input type="text" value={clientId} onChange={(e) => setClientId(e.target.value)} />
-                <label>Client Secret:</label>
-                <input type="password" value={clientSecret} onChange={(e) => setClientSecret(e.target.value)} />
+                <div>
+                    <label>Method:</label>
+                    <select value={method} onChange={(e) => setMethod(e.target.value)} style={{ width: "100%" }}>
+                        <option value="GET">GET</option>
+                        <option value="POST">POST</option>
+                    </select>
+                </div>
+
+                <div>
+                    <h3>Parameters</h3>
+                    {params.map((param, index) => (
+                        <div key={index} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <input type="checkbox" checked={param.enabled} onChange={(e) => handleParamCheckboxChange(index, e.target.checked)} />
+                            <input type="text" placeholder="Key" value={param.key} onChange={(e) => handleParamsChange(index, "key", e.target.value)} />
+                            <input type="text" placeholder="Value" value={param.value} onChange={(e) => handleParamsChange(index, "value", e.target.value)} />
+                            <button onClick={() => handleDeleteParam(index)}>🗑️</button>
+                        </div>
+                    ))}
+                    <button onClick={() => setParams([...params, { key: "", value: "", enabled: true }])}>
+                        Add Parameter
+                    </button>
+                </div>
+
+                <div>
+                    <h3>Headers</h3>
+                    {headers.map((header, index) => (
+                        <div key={index} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <input type="checkbox" checked={header.enabled} onChange={(e) => handleHeaderCheckboxChange(index, e.target.checked)} />
+                            <input type="text" placeholder="Header Key" value={header.key} onChange={(e) => handleHeadersChange(index, "key", e.target.value)} />
+                            <input type="text" placeholder="Header Value" value={header.value} onChange={(e) => handleHeadersChange(index, "value", e.target.value)} />
+                            <button onClick={() => handleDeleteHeader(index)}>🗑️</button>
+                        </div>
+                    ))}
+                    <button onClick={() => setHeaders([...headers, { key: "", value: "", enabled: true }])}>
+                        Add Header
+                    </button>
+                </div>
+
+                {method === "POST" && (
+                    <div>
+                        <h3>Request Body</h3>
+                        <textarea value={requestBody} onChange={(e) => setRequestBody(e.target.value)} style={{ width: "100%", height: "150px" }} />
+                    </div>
+                )}
+
+                <div>
+                    <h3>OAuth2 Authentication</h3>
+                    <label>Token URL:</label>
+                    <input type="text" value={tokenUrl} onChange={(e) => setTokenUrl(e.target.value)} style={{ width: "100%" }} />
+                    <label>Client ID:</label>
+                    <input type="text" value={clientId} onChange={(e) => setClientId(e.target.value)} style={{ width: "100%" }} />
+                    <label>Client Secret:</label>
+                    <input type="password" value={clientSecret} onChange={(e) => setClientSecret(e.target.value)} style={{ width: "100%" }} />
+                </div>
+
+                <div style={{ marginTop: "10px", display: "flex", gap: "10px" }}>
+                    <button onClick={makeApiCall}>Send Request</button>
+                </div>
             </div>
 
-            <div style={{ marginTop: "10px", display: "flex", gap: "10px" }}>
-                <button onClick={makeApiCall}>Send Request</button>
-            </div>
+            {/* Right: Response */}
+            <div style={{
+                flex: 1,
+                backgroundColor: "#1e1e1e",
+                color: "#fff",
+                padding: "20px",
+                overflowY: "auto"
+            }}>
+                {response && (
+                    <div style={{
+                        border: "1px solid #ccc",
+                        borderRadius: "10px",
+                        padding: "16px",
+                        height: "90%",
+                        overflow: "auto",
+                        backgroundColor: "#2c2c2c"
+                    }}>
+                        <div style={{ marginBottom: "10px", display: "flex", gap: "20px" }}>
+                            <span><strong>Size:</strong> {(responseSize / 1024).toFixed(2)} KB</span>
+                            <span><strong>Time:</strong> {responseTime} ms</span>
+                        </div>
 
-            {response && (
-                <div style={{
-                    border: "1px solid #ccc",
-                    borderRadius: "10px",
-                    padding: "16px",
-                    marginTop: "20px",
-                    height: "400px",           // Fixed height
-                    overflow: "auto",          // Enable both horizontal and vertical scroll
-                    backgroundColor: "#f9f9f9"
-                }}>
-
-                    <div style={{marginBottom: "10px", display: "flex", gap: "20px"}}>
-                        <span><strong>Size:</strong> {(responseSize / 1024).toFixed(2)} KB</span>
-                        <span><strong>Time:</strong> {responseTime} ms</span>
-                    </div>
-
-                    <div style={{marginBottom: "10px"}}>
-                        <button onClick={() => setViewMode("tree")}>Tree View</button>
-                        <button onClick={() => setViewMode("raw")}>Raw JSON</button>
-                    </div>
-
-                    {viewMode === "tree" ? (
                         <JsonViewer
                             value={typeof response === "string" ? JSON.parse(response) : response}
-                            theme="light"
-                            defaultInspectDepth={2}  // How many levels open by default
+                            theme="dark"
+                            defaultInspectDepth={Infinity}
                             enableClipboard
                         />
-
-                    ) : (
-                        <SyntaxHighlighter language="json" style={oneDark}>
-                            {JSON.stringify(typeof response === "string" ? JSON.parse(response) : response, null, 2)}
-                        </SyntaxHighlighter>
-                    )}
-                </div>
-            )}
+                    </div>
+                )}
+            </div>
         </div>
     );
 };
