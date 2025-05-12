@@ -9,6 +9,8 @@
     "start": "concurrently \"npm run dev\" \"npm run electron\""
   },
   "dependencies": {
+    "jsoneditor": "^10.2.0",
+    "jsoneditor-react": "^3.1.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react18-json-view": "^0.2.9",
