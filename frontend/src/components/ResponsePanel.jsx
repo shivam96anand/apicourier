@@ -1,10 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { JsonView, darkStyles } from 'react-json-view-lite';
 import 'react-json-view-lite/dist/index.css';
 
 export default function ResponsePanel({ response }) {
     const [tab, setTab] = useState('Pretty');
     const [showViewer, setShowViewer] = useState(false);
+
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') setShowViewer(false);
+        };
+
+        if (showViewer) {
+            window.addEventListener('keydown', handleKeyDown);
+        }
+
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [showViewer]);
 
     if (!response) {
         return <div className="p-3 text-gray-400">No response yet.</div>;
@@ -64,7 +78,7 @@ export default function ResponsePanel({ response }) {
                 )}
             </div>
 
-            {/* Response Body Scrollable */}
+            {/* Scrollable Response Panel */}
             <div className="flex-1 overflow-auto bg-gray-900">
                 <div className="p-2 w-full h-full">
                     {tab === 'Pretty' && (
@@ -83,45 +97,41 @@ export default function ResponsePanel({ response }) {
 
                     {tab === 'Raw' && (
                         <div className="bg-gray-800 p-3 rounded overflow-auto max-h-[70vh] max-w-full">
-        <pre className="text-white whitespace-pre-wrap break-all min-w-[800px]">
-            {typeof response.data === 'string'
-                ? response.data
-                : JSON.stringify(response.data, null, 2)}
-        </pre>
+                            <pre className="text-white whitespace-pre-wrap break-all min-w-[800px]">
+                                {typeof response.data === 'string'
+                                    ? response.data
+                                    : JSON.stringify(response.data, null, 2)}
+                            </pre>
                         </div>
                     )}
-
 
                     {tab === 'Headers' && (
                         <div className="bg-gray-800 p-3 rounded overflow-auto max-h-[70vh] max-w-full">
-        <pre className="text-white whitespace-pre-wrap break-all min-w-[800px]">
-            {JSON.stringify(response.headers || {}, null, 2)}
-        </pre>
+                            <pre className="text-white whitespace-pre-wrap break-all min-w-[800px]">
+                                {JSON.stringify(response.headers || {}, null, 2)}
+                            </pre>
                         </div>
                     )}
-
                 </div>
             </div>
 
             {/* Fullscreen JSON Viewer Modal */}
             {showViewer && (
-                <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50">
-                    <div className="bg-gray-900 p-4 rounded-lg shadow-lg w-[85%] h-[85%] overflow-auto relative">
-                        <button
-                            onClick={() => setShowViewer(false)}
-                            className="absolute top-2 right-3 text-white text-sm hover:text-red-400"
-                        >
-                            ❌ Close
-                        </button>
-                        <div className="overflow-auto max-h-full max-w-full">
-                            <JsonView
-                                data={parsedData}
-                                style={darkStyles}
-                                defaultInspectDepth={2}
-                                displayObjectSize={false}
-                                enableClipboard={true}
-                            />
-                        </div>
+                <div
+                    className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50"
+                    onClick={() => setShowViewer(false)}
+                >
+                    <div
+                        className="bg-gray-900 p-4 rounded-lg shadow-lg w-[85%] h-[85%] overflow-auto relative"
+                        onClick={(e) => e.stopPropagation()} // prevent modal close on inner click
+                    >
+                        <JsonView
+                            data={parsedData}
+                            style={darkStyles}
+                            defaultInspectDepth={2}
+                            displayObjectSize={false}
+                            enableClipboard={true}
+                        />
                     </div>
                 </div>
             )}
