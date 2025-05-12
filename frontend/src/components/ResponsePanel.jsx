@@ -4,6 +4,7 @@ import 'react-json-view-lite/dist/index.css';
 
 export default function ResponsePanel({ response }) {
     const [tab, setTab] = useState('Pretty');
+    const [showViewer, setShowViewer] = useState(false);
 
     if (!response) {
         return <div className="p-3 text-gray-400">No response yet.</div>;
@@ -17,6 +18,9 @@ export default function ResponsePanel({ response }) {
         navigator.clipboard.writeText(text);
         alert('Copied to clipboard!');
     };
+
+    const parsedData =
+        typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
 
     return (
         <div className="flex flex-col h-full bg-gray-900 text-sm overflow-hidden">
@@ -35,27 +39,39 @@ export default function ResponsePanel({ response }) {
                 </button>
             </div>
 
-            {/* Tabs */}
-            <div className="flex border-b border-gray-700 px-2 shrink-0">
-                {['Pretty', 'Raw', 'Headers'].map(t => (
+            {/* Tabs + Viewer Button */}
+            <div className="flex items-center justify-between border-b border-gray-700 px-2 shrink-0">
+                <div className="flex">
+                    {['Pretty', 'Raw', 'Headers'].map(t => (
+                        <button
+                            key={t}
+                            className={`px-3 py-1 text-sm ${
+                                tab === t ? 'text-white border-b-2 border-purple-500' : 'text-gray-400 hover:text-white'
+                            }`}
+                            onClick={() => setTab(t)}
+                        >
+                            {t}
+                        </button>
+                    ))}
+                </div>
+                {tab === 'Pretty' && (
                     <button
-                        key={t}
-                        className={`px-3 py-1 text-sm ${tab === t ? 'text-white border-b-2 border-purple-500' : 'text-gray-400 hover:text-white'}`}
-                        onClick={() => setTab(t)}
+                        onClick={() => setShowViewer(true)}
+                        className="text-sm text-purple-400 hover:text-purple-300"
                     >
-                        {t}
+                        Open in JSON Viewer
                     </button>
-                ))}
+                )}
             </div>
 
-            {/* Scrollable panel */}
+            {/* Response Body Scrollable */}
             <div className="flex-1 overflow-auto bg-gray-900">
                 <div className="p-2 w-full h-full">
                     {tab === 'Pretty' && (
                         <div className="bg-gray-800 p-2 rounded overflow-auto max-h-[70vh] max-w-full">
                             <div className="min-w-[800px] whitespace-pre-wrap break-all">
                                 <JsonView
-                                    data={typeof response.data === 'string' ? JSON.parse(response.data) : response.data}
+                                    data={parsedData}
                                     style={darkStyles}
                                     defaultInspectDepth={1}
                                     displayObjectSize={false}
@@ -66,20 +82,49 @@ export default function ResponsePanel({ response }) {
                     )}
 
                     {tab === 'Raw' && (
-                        <pre className="text-white bg-gray-800 p-3 rounded overflow-auto whitespace-pre-wrap break-all">
-                            {typeof response.data === 'string'
-                                ? response.data
-                                : JSON.stringify(response.data, null, 2)}
-                        </pre>
+                        <div className="bg-gray-800 p-3 rounded overflow-auto max-h-[70vh] max-w-full">
+        <pre className="text-white whitespace-pre-wrap break-all min-w-[800px]">
+            {typeof response.data === 'string'
+                ? response.data
+                : JSON.stringify(response.data, null, 2)}
+        </pre>
+                        </div>
                     )}
 
+
                     {tab === 'Headers' && (
-                        <pre className="text-white bg-gray-800 p-3 rounded overflow-auto whitespace-pre-wrap break-all">
-                            {JSON.stringify(response.headers || {}, null, 2)}
-                        </pre>
+                        <div className="bg-gray-800 p-3 rounded overflow-auto max-h-[70vh] max-w-full">
+        <pre className="text-white whitespace-pre-wrap break-all min-w-[800px]">
+            {JSON.stringify(response.headers || {}, null, 2)}
+        </pre>
+                        </div>
                     )}
+
                 </div>
             </div>
+
+            {/* Fullscreen JSON Viewer Modal */}
+            {showViewer && (
+                <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50">
+                    <div className="bg-gray-900 p-4 rounded-lg shadow-lg w-[85%] h-[85%] overflow-auto relative">
+                        <button
+                            onClick={() => setShowViewer(false)}
+                            className="absolute top-2 right-3 text-white text-sm hover:text-red-400"
+                        >
+                            ❌ Close
+                        </button>
+                        <div className="overflow-auto max-h-full max-w-full">
+                            <JsonView
+                                data={parsedData}
+                                style={darkStyles}
+                                defaultInspectDepth={2}
+                                displayObjectSize={false}
+                                enableClipboard={true}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
