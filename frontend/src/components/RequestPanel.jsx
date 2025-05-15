@@ -148,7 +148,6 @@ export default function RequestPanel({ selectedRequest, theme, onToggleTheme, on
             onSendResponse(finalResponse);
         } catch (err) {
             console.error('Send failed:', err);
-            alert('API call failed: ' + err.message);
         }
     };
 
