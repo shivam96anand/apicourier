@@ -9,13 +9,17 @@
     "start": "concurrently \"npm run dev\" \"npm run electron\""
   },
   "dependencies": {
+    "@andypf/json-viewer": "^2.1.10",
     "jsoneditor": "^10.2.0",
     "jsoneditor-react": "^3.1.2",
     "lodash.clonedeep": "^4.5.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-json-inspector": "^7.1.1",
+    "react-json-tree": "^0.20.0",
     "react-json-view": "^1.21.3",
     "react18-json-view": "^0.2.9",
+    "searchable-react-json-view": "^0.0.8",
     "uuid": "^11.1.0"
   },
   "devDependencies": {
