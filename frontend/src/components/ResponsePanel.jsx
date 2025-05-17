@@ -110,17 +110,21 @@ export default function ResponsePanel({ response }) {
                     )}
 
                     {tab === 'Raw' && (
-                        <pre className="bg-gray-800 p-3 rounded text-white max-h-[70vh] overflow-auto min-w-[800px]">
-                            {typeof response.data === 'string'
-                                ? response.data
-                                : JSON.stringify(response.data, null, 2)}
-                        </pre>
+                        <div className="bg-gray-800 p-3 rounded overflow-auto max-h-[70vh] max-w-full">
+                            <pre className="text-white whitespace-pre-wrap break-all min-w-[800px]">
+                                {typeof response.data === 'string'
+                                    ? response.data
+                                    : JSON.stringify(response.data, null, 2)}
+                            </pre>
+                        </div>
                     )}
 
                     {tab === 'Headers' && (
-                        <pre className="bg-gray-800 p-3 rounded text-white max-h-[70vh] overflow-auto min-w-[800px]">
-                            {JSON.stringify(response.headers || {}, null, 2)}
-                        </pre>
+                        <div className="bg-gray-800 p-3 rounded overflow-auto max-h-[70vh] max-w-full">
+                            <pre className="text-white whitespace-pre-wrap break-all min-w-[800px]">
+                                {JSON.stringify(response.headers || {}, null, 2)}
+                            </pre>
+                        </div>
                     )}
                 </div>
             </div>
