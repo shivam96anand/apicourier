@@ -3,6 +3,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import JsonViewer from '@andypf/json-viewer/dist/esm/react/JsonViewer';
+import { Expand } from 'lucide-react';
 
 export default function ResponsePanel({ response }) {
     const [tab, setTab] = useState('Pretty');
@@ -71,9 +72,10 @@ export default function ResponsePanel({ response }) {
                 {tab === 'Pretty' && (
                     <button
                         onClick={() => setShowViewer(true)}
-                        className="text-sm text-purple-400 hover:text-purple-300"
+                        className="p-1 text-purple-400 hover:text-purple-300"
+                        title="Open in Fullscreen"
                     >
-                        Open in JSON Viewer
+                        <Expand size={18}/>
                     </button>
                 )}
             </div>
